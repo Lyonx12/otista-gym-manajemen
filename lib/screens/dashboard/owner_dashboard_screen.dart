@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
-import '../reports/financial_report_screen.dart'; // Kita buat setelah ini
+// IMPORT KEEMPAT HALAMAN LAPORAN
+import '../reports/financial_report_screen.dart';
+import '../reports/history_screen.dart';
+import '../reports/inventory_screen.dart';
+import '../reports/complaint_screen.dart';
 
 class OwnerDashboardScreen extends StatelessWidget {
   const OwnerDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final warnaTema = Theme.of(context).colorScheme;
-
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -33,86 +36,250 @@ class OwnerDashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // --- BAGIAN 1: STATISTIK REAL-TIME ---
             const Text(
-              'Ringkasan Bisnis',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+              'Statistik Member',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(
+                    height: 100,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF39FF14),
+                      ),
+                    ),
+                  );
+                }
 
-            // Kartu Menu: Laporan Keuangan
-            GestureDetector(
+                int memberAktif = 0;
+                int memberBelumBayar = 0;
+
+                if (snapshot.hasData) {
+                  for (var doc in snapshot.data!.docs) {
+                    var data = doc.data() as Map<String, dynamic>;
+                    String status = (data['status_member'] ?? '')
+                        .toString()
+                        .toLowerCase();
+                    String role = (data['role'] ?? '').toString().toLowerCase();
+
+                    // Abaikan akun owner dan receptionist dari hitungan
+                    if (role == 'owner' || role == 'receptionist') continue;
+
+                    if (status == 'aktif' || status == 'true') {
+                      memberAktif++;
+                    } else {
+                      memberBelumBayar++;
+                    }
+                  }
+                }
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        title: 'Member Aktif',
+                        count: memberAktif.toString(),
+                        icon: Icons.check_circle,
+                        color: const Color(0xFF39FF14),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildStatCard(
+                        title: 'Belum Bayar',
+                        count: memberBelumBayar.toString(),
+                        icon: Icons.warning_amber_rounded,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+
+            const SizedBox(height: 40),
+
+            // --- BAGIAN 2: MENU PENGAWASAN OPERASIONAL ---
+            const Text(
+              'Pengawasan Operasional',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 1. Menu Laporan Keuangan
+            _buildMenuCard(
+              context: context,
+              icon: Icons.account_balance_wallet,
+              title: 'Keuangan & Pendapatan',
+              subtitle: 'Pantau arus kas dan riwayat transaksi pendaftaran.',
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const FinancialReportScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const FinancialReportScreen(),
+                  ),
                 );
               },
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: warnaTema.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF39FF14), width: 1),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.bar_chart, size: 48, color: Color(0xFF39FF14)),
-                    SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Laporan Pendapatan',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Pantau arus kas dan riwayat transaksi pelanggan.',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(Icons.arrow_forward_ios, color: Colors.grey),
-                  ],
-                ),
-              ),
             ),
+            const SizedBox(height: 16),
 
-            const SizedBox(height: 24),
+            // 2. Menu Masa Aktif & History Member
+            _buildMenuCard(
+              context: context,
+              icon: Icons.history_edu,
+              title: 'History & Masa Aktif',
+              subtitle: 'Tinjau riwayat kedatangan dan sisa masa aktif member.',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HistoryScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
 
-            // Kartu Menu: Manajemen Staff (Untuk nambah resepsionis baru)
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: warnaTema.surface,
-                borderRadius: BorderRadius.circular(16),
+            // 3. Menu Inventory & Stok Barang
+            _buildMenuCard(
+              context: context,
+              icon: Icons.inventory,
+              title: 'Inventaris & Stok Barang',
+              subtitle: 'Kelola stok suplemen, minuman, dan laporan barang.',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const InventoryScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // 4. Menu Kerusakan & Pengaduan
+            _buildMenuCard(
+              context: context,
+              icon: Icons.report_problem,
+              title: 'Kerusakan & Pengaduan',
+              subtitle: 'Laporan alat gym yang rusak dan komplain pelanggan.',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ComplaintScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget Pembuat Kotak Statistik
+  Widget _buildStatCard({
+    required String title,
+    required String count,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, color: color, size: 28),
+              Text(
+                count,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              child: const Row(
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget Pembuat Kartu Menu
+  Widget _buildMenuCard({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade800, width: 1),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 40, color: const Color(0xFF39FF14)),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.badge, size: 48, color: Colors.grey),
-                  SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Kelola Akun Staff',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Tambah atau hapus akses resepsionis (Segera Hadir).',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
-                      ],
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                  Icon(Icons.lock_clock, color: Colors.grey),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
                 ],
               ),
             ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
           ],
         ),
       ),

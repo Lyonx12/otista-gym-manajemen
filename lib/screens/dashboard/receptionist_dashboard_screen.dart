@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../members/scan_qr_screen.dart'; // Nanti kita buat file ini
+import '../members/member_list_screen.dart'; // <-- IMPORT BARU UNTUK CARI MANUAL
 
 class ReceptionistDashboardScreen extends StatelessWidget {
   const ReceptionistDashboardScreen({super.key});
@@ -27,19 +28,31 @@ class ReceptionistDashboardScreen extends StatelessWidget {
                 context: context,
                 builder: (context) => AlertDialog(
                   backgroundColor: Colors.grey[900],
-                  title: const Text('Keluar Sistem', style: TextStyle(color: Colors.white)),
-                  content: const Text('Apakah Anda yakin ingin menutup sif dan keluar?', style: TextStyle(color: Colors.grey)),
+                  title: const Text(
+                    'Keluar Sistem',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  content: const Text(
+                    'Apakah Anda yakin ingin menutup sif dan keluar?',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                      child: const Text(
+                        'Batal',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ),
                     TextButton(
                       onPressed: () async {
                         Navigator.pop(context);
                         await authService.keluar();
                       },
-                      child: const Text('Keluar', style: TextStyle(color: Colors.redAccent)),
+                      child: const Text(
+                        'Keluar',
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
                     ),
                   ],
                 ),
@@ -56,7 +69,11 @@ class ReceptionistDashboardScreen extends StatelessWidget {
           children: [
             const Text(
               'Selamat Datang, Staff!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -89,22 +106,32 @@ class ReceptionistDashboardScreen extends StatelessWidget {
                   SizedBox(height: 16),
                   Text(
                     'SCAN QR PELANGGAN',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
                   ),
                   SizedBox(height: 8),
-                  Text('Verifikasi Pembayaran & Aktifkan Member', style: TextStyle(fontSize: 12)),
+                  Text(
+                    'Verifikasi Pembayaran & Aktifkan Member',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ],
               ),
             ),
 
             const SizedBox(height: 24),
 
-            // Tombol Sekunder: Cari Manual (Jika pelanggan lupa bawa HP)
+            // TOMBOL SEKUNDER: Cari Manual (Sudah Aktif!)
             OutlinedButton.icon(
               onPressed: () {
-                // Fitur cari manual dengan mengetik nomor HP pelanggan (bisa menyusul)
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Fitur Cari Manual sedang disiapkan.')),
+                // <-- FUNGSI BARU: Pindah ke halaman MemberListScreen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MemberListScreen(),
+                  ),
                 );
               },
               icon: const Icon(Icons.search, color: Color(0xFF39FF14)),
